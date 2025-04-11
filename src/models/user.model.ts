@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { encrypt } from "../utils/encryption";
 import { renderMailHTML, sendEmail } from "../utils/mail/mail";
-import { CLIENT_HOST } from "../utils/env";
+import { CLIENT_HOST, EMAIL_SMTP_USER } from "../utils/env";
 
 export interface User {
   fullName: string;
@@ -26,10 +26,12 @@ const UserSchema = new Schema<User>(
     username: {
       type: Schema.Types.String,
       required: true,
+      unique: true
     },
     email: {
       type: Schema.Types.String,
       required: true,
+      unique: true
     },
     password: {
       type: Schema.Types.String,
@@ -66,25 +68,29 @@ UserSchema.pre("save", function (next) {
 
 //setelah berhasi didaftarkan, kirim email
 UserSchema.post("save", async function (doc, next) {
-  const user = doc;
-  console.log("send email to", user.email);
+  try {
+    const user = doc;
+    console.log("send email to", user.email);
 
-  const contentMail = await renderMailHTML("registration-success.ejs", {
-    username: user.username,
-    fullName: user.fullName,
-    email: user.email,
-    createdAt: user.createdAt,
-    activationLink: `${CLIENT_HOST}/auth/activation?code=${user.activationCode}`,
-  });
+    const contentMail = await renderMailHTML("registration-success.ejs", {
+      username: user.username,
+      fullName: user.fullName,
+      email: user.email,
+      createdAt: user.createdAt,
+      activationLink: `${CLIENT_HOST}/auth/activation?code=${user.activationCode}`,
+    });
 
-  await sendEmail({
-    from: "admin-acara@noreply.com",
-    to: user.email,
-    subject: "Aktivasi Akun Anda",
-    html: contentMail
-  });
-
-  next();
+    await sendEmail({
+      from: EMAIL_SMTP_USER,
+      to: user.email,
+      subject: "Aktivasi Akun Anda",
+      html: contentMail,
+    });
+  } catch (error) {
+    console.log("error > ", error);
+  } finally {
+    next();
+  }
 });
 
 //membuat agar password saat login/register tidak ditampilakan sebagai response data

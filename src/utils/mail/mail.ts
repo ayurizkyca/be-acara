@@ -39,9 +39,9 @@ export const sendEmail = async ({ ...mailParams } : ISendMail) => {
 };
 
 //render file ejs
-export const renderMailHTML = async(template: string, data: any) => {
-  const content = await ejs.renderFile(path.join(__dirname, `templates/${template}`));
-  return content;
+export const renderMailHTML = async(template: string, data: any): Promise<string> => {
+  const content = await ejs.renderFile(path.join(__dirname, `templates/${template}`), data);
+  return content as string;
 };
 
 
